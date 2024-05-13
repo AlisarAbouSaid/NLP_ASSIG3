@@ -98,31 +98,22 @@ def minibatch_parse(sentences, model, batch_size):
                                                     contain the parse for sentences[i]).
     """
     dependencies = []
-    # Initialize partial parses for each sentence
+    dependencies = [None for _ in range(len(sentences))]
     partial_parses = [PartialParse(sentence) for sentence in sentences]
-
-    # Make a shallow copy of partial parses for bookkeeping
     unfinished_parses = partial_parses[:]
-
-    # Loop until all parses are complete
+    unfinished_parses_idx = list(range(len(unfinished_parses)))
     while unfinished_parses:
-        # Take the first batch_size parses as a minibatch
-        minibatch = unfinished_parses[:batch_size]
-
-        # Use the model to predict the next transition for each partial parse in the minibatch
-        transitions = model.predict(minibatch)
-
-        # Perform a parse step on each partial parse in the minibatch with its predicted transition
-        for parse, transition in zip(minibatch, transitions):
+        parse_batch = unfinished_parses[:batch_size]
+        parse_idx_batch = unfinished_parses_idx[:batch_size]
+        transition_batch = model.predict(parse_batch)
+        delete_count = 0
+        for i, (transition, parse) in enumerate(zip(transition_batch, parse_batch)):
             parse.parse_step(transition)
-
-        # Remove completed parses from unfinished parses
-        unfinished_parses = [parse for parse in unfinished_parses if
-                             not (len(parse.buffer) == 0 and len(parse.stack) == 1)]
-
-        # Append dependencies for completed parses to the dependencies list
-        dependencies.extend(
-            [parse.dependencies for parse in minibatch if len(parse.buffer) == 0 and len(parse.stack) == 1])
+            if not parse.buffer and len(parse.stack) == 1:
+                dependencies[parse_idx_batch[i]] = parse.dependencies
+                unfinished_parses.pop(i - delete_count)
+                unfinished_parses_idx.pop(i - delete_count)
+                delete_count += 1
     ### YOUR CODE HERE (~8-10 Lines)
     ### TODO:
     ###     Implement the minibatch parse algorithm.  Note that the pseudocode for this algorithm is given in the pdf handout.

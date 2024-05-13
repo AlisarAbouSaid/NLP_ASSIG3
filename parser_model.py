@@ -75,8 +75,9 @@ class ParserModel(nn.Module):
         ### See the PDF for hints.
 
         # Initialize embed_to_hidden_weight and embed_to_hidden_bias
-        self.embed_to_hidden_weight = nn.Parameter(torch.empty(hidden_size, self.n_features * self.embed_size))
-        #self.embed_to_hidden_weight = nn.Parameter(torch.empty(hidden_size, n_features))
+        # 1self.embed_to_hidden_weight = nn.Parameter(torch.empty(hidden_size, self.n_features * self.embed_size))
+        self.embed_to_hidden_weight = nn.Parameter(torch.empty(self.embed_size * self.n_features, self.hidden_size))
+        # self.embed_to_hidden_weight = nn.Parameter(torch.empty(hidden_size, n_features))
         nn.init.xavier_uniform_(self.embed_to_hidden_weight)
         self.embed_to_hidden_bias = nn.Parameter(torch.empty(hidden_size))
         nn.init.uniform_(self.embed_to_hidden_bias)
@@ -85,7 +86,8 @@ class ParserModel(nn.Module):
         self.dropout = nn.Dropout(p=dropout_prob)
 
         # Initialize hidden_to_logits_weight and hidden_to_logits_bias
-        self.hidden_to_logits_weight = nn.Parameter(torch.empty(n_classes, hidden_size))
+        # self.hidden_to_logits_weight = nn.Parameter(torch.empty(n_classes, hidden_size))
+        self.hidden_to_logits_weight = nn.Parameter(torch.empty(hidden_size, n_classes))
         nn.init.xavier_uniform_(self.hidden_to_logits_weight)
         self.hidden_to_logits_bias = nn.Parameter(torch.empty(n_classes))
         nn.init.uniform_(self.hidden_to_logits_bias)
@@ -121,12 +123,9 @@ class ParserModel(nn.Module):
         ###     View: https://pytorch.org/docs/stable/tensors.html#torch.Tensor.view
         ###     Flatten: https://pytorch.org/docs/stable/generated/torch.flatten.html
         # Select embeddings for each index in w
-        embeddings_selected = self.embeddings[w]  # Shape: (batch_size, n_features, embed_size)
-
+        x = self.embeddings[w]  # Shape: (batch_size, n_features, embed_size)
         # Reshape the tensor if necessary
-        batch_size, n_features, embed_size = embeddings_selected.shape
-        x = embeddings_selected.view(batch_size, n_features * embed_size)
-        #x = embeddings.view(w.size(0), -1)
+        x = x.view(x.size()[0], -1)  # shape (batch_size, n_features * embedding_size)
         ### END YOUR CODE
         return x
 
@@ -164,14 +163,14 @@ class ParserModel(nn.Module):
         x = self.embedding_lookup(w)
 
         # Perform linear transformation and apply ReLU activation
-        hidden = torch.matmul(x, self.embed_to_hidden_weight.T) + self.embed_to_hidden_bias
+        hidden = torch.matmul(x, self.embed_to_hidden_weight) + self.embed_to_hidden_bias
         hidden = F.relu(hidden)
 
         # Apply dropout layer
         hidden = F.dropout(hidden, p=self.dropout_prob)
 
         # Perform linear transformation to get logits
-        logits = torch.matmul(hidden, self.hidden_to_logits_weight.T) + self.hidden_to_logits_bias
+        logits = torch.matmul(hidden, self.hidden_to_logits_weight) + self.hidden_to_logits_bias
         predictions = F.softmax(logits, dim=1)
         ### END YOUR CODE
         return logits

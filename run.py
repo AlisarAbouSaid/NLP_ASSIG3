@@ -41,7 +41,9 @@ def train(parser, train_data, dev_data, output_path, batch_size=1024, n_epochs=1
     best_dev_UAS = 0
 
     # Instantiate Adam optimizer
+    print("I am in train")
     optimizer = optim.Adam(parser.model.parameters(), lr=lr)
+
 
     # Instantiate Cross Entropy Loss function
     loss_func = nn.CrossEntropyLoss()
@@ -110,16 +112,13 @@ def train_for_epoch(parser, train_data, dev_data, optimizer, loss_func, batch_si
             ###     Optimizer Step: https://pytorch.org/docs/stable/optim.html#optimizer-step
             # Run train_x forward through model to produce logits
             logits = parser.model(train_x)
-
             # Use Cross Entropy Loss function to compute the loss
             loss = loss_func(logits, train_y)
-
             # Backpropagate the loss
             loss.backward()
-
             # Take a step with the optimizer
             optimizer.step()
-
+            #print('this is working')
             ### END YOUR CODE
             prog.update(1)
             loss_meter.update(loss.item())
@@ -128,6 +127,7 @@ def train_for_epoch(parser, train_data, dev_data, optimizer, loss_func, batch_si
 
     print("Evaluating on dev set", )
     parser.model.eval()  # Places model in "eval" mode, i.e. don't apply dropout layer
+    # print('I am going to parse data')
     dev_UAS, _ = parser.parse(dev_data)
     print("- dev UAS: {:.2f}".format(dev_UAS * 100.0))
     return dev_UAS
